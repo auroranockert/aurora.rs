@@ -1,3 +1,5 @@
+use std::ops;
+
 use types::StreamType;
 use buffers::buffer::Buffer;
 
@@ -15,16 +17,18 @@ impl Sample {
         self.buffers.push(buffer);
     }
 
-    pub fn buffer_count(&self) -> uint {
+    pub fn length(&self) -> uint {
         return self.buffers.len();
-    }
-
-    pub fn get_buffer(&self, i:uint) -> @Buffer {
-        return self.buffers[i];
     }
 
     pub fn remove_all_buffers(&mut self) {
         self.buffers.truncate(0);
+    }
+}
+
+impl ops::Index<uint, @Buffer> for Sample {
+    pub fn index(&self, i:&uint) -> @Buffer {
+        return self.buffers[*i];
     }
 }
 

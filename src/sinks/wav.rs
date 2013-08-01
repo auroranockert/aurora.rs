@@ -138,8 +138,8 @@ impl WAVStreamSink {
     }
 
     fn write_sample_to_stream(&mut self, sample:Sample) -> Result<uint> {
-        for uint::range(0, sample.buffer_count()) |i| {
-            let result = do sample.get_buffer(i).map() |buffer| {
+        for uint::range(0, sample.length()) |i| {
+            let result = do sample[i].map() |buffer| {
                 self.stream.write(buffer); self.bytes_written += (buffer.len() as u64); Ok
             };
 

@@ -3,10 +3,37 @@ Aurora.rs
 
 Aurora.rs is a framework (with some DNA from Aurora.js, with some additional sprinkles of Media Foundation) that makes writing media pipelines in Rust easier.
 
-It will handle common media tasks like binary data streams and building media decoding topologies. It doesn't support any of the high-level features of Aurora.js yet (and probably won't) and most of the low-level stuff is broken, but it does something Aurora.js doesn't, and that is that it supports audio encoders as well as decoders.
+It will handle common media tasks like binary data streams and building media decoding topologies. It doesn't support any of the high-level features of Aurora.js yet (and probably won't) and most of the low-level stuff is broken, but it does something Aurora.js doesn't, and that is that it supports encoders as well as decoders.
 
-Currently it ships with a WAV source, a WAV sink and well… nothing more. I'll need a bit more to be able to port my thesis work to it, so you can expect a PCM converter, short-time fourier transforms, MDCT, and a BMP writer at least, which should prove it a bit.
+It is also intended to support video, which isn't really in the realm of JS performance right now, and Images, which we just didn't feel was a focus in Aurora.js.
 
+
+What is working
+---------------
+
+ - WAV mux, demux (mostly, but it is brittle)
+ - PCM transcoder (always round-trips via double, so while accurate, it might be slow)
+
+
+What is not working (but is planned in the short term)
+------------------------------------------------------
+
+To finish my thesis, I will need to implement at least
+
+ - Short-time Fourier Transforms (for generating spectrograms).
+ - MDCT.
+ - BMP encoder.
+
+
+What is not working (and hopefully fixed in the long term)
+----------------------------------------------------------
+
+ - Some orchestration of topologies, now you need to control each element manually.
+ - AIFF, MPEG-1, MPEG-2, Ogg, QuickTime, CAF, and MPEG-4 demuxers.
+ - MP3, AAC, Vorbis, and FLAC decoders.
+ - BMP, TIFF, JPEG, GIF and PNG decoders.
+ - Automatic setting of stream types, based on what is supported by a transform.
+ 
 
 Goal
 ----
@@ -17,7 +44,7 @@ It would be really cool if this could be used in Servo for audio / video / img t
 Demo
 ----
 
-You should be able to run aurora.rs if you have some `.wav` files in the same directory, but it doesn't actually do anything right now.
+You should be able to run aurora.rs if you have a `test-float.wav` file in the same directory, it transcodes it to a `output.wav` which has signed 16-bit samples.
 
 
 Authors
