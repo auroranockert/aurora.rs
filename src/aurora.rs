@@ -15,6 +15,7 @@ mod macros {
 
 pub mod align;
 pub mod attribute;
+pub mod byteswap;
 pub mod fourcc;
 pub mod result;
 pub mod types;
@@ -26,6 +27,13 @@ pub mod buffers {
 
 pub mod events {
     pub mod event;
+}
+
+pub mod io {
+    pub mod file;
+    pub mod read;
+    pub mod seek;
+    pub mod write;
 }
 
 pub mod parsers {

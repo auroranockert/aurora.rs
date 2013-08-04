@@ -7,6 +7,9 @@ use sources::source;
 use sources::source::{Source, SourceCharacteristics, PresentationDescriptor, State, Started, Paused, Stopped};
 use streams::wav::WAVStream;
 
+use io::read::Read;
+use io::seek::Seek;
+
 struct WAVSource {
     presentation_descriptor: @mut PresentationDescriptor,
     event_queue: EventQueue,
@@ -32,9 +35,9 @@ impl WAVSource {
         return if self.shutdown { Ok } else { Error(0) }; // TODO: Magic number if there ever was one
     }
 
-    pub fn open(&mut self, stream:@Reader) -> Result<uint> {
+    pub fn open(&mut self, reader:@Read, seeker:@Seek) -> Result<uint> {
         self.parser = match self.parser {
-            None => match WAVParser::new(stream) {
+            None => match WAVParser::new(reader, seeker) {
                 (Ok, Some(parser)) => Some(@mut parser),
                 (err, _) => return err
             },

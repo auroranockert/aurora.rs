@@ -1,7 +1,5 @@
 extern mod aurora;
 
-use std::io;
-use std::path;
 use std::hashmap::HashMap;
 
 use aurora::types;
@@ -9,6 +7,10 @@ use aurora::result::Ok;
 
 use aurora::events::event;
 use aurora::events::event::EventGenerator;
+use aurora::io::file::{File, READ_ONLY, WRITE_ONLY, CREATE_FILE, TRUNCATE_FILE};
+use aurora::io::read::Read;
+use aurora::io::seek::Seek;
+use aurora::io::write::Write;
 use aurora::sinks::sink::{Sink, StreamSink};
 use aurora::sinks::wav::WAVSink;
 use aurora::sources::wav::WAVSource;
@@ -17,15 +19,25 @@ use aurora::transforms::transform::Transform;
 use aurora::transforms::pcm::PCMTransform;
 
 fn main() {
-    let reader = io::file_reader(&path::PosixPath("media/wav/test-float.wav")).unwrap();
-    let writer = io::file_writer(&path::PosixPath("output.wav"), &[io::Create, io::Truncate]).unwrap();
+    // let reader = io::file_reader(&path::PosixPath("media/wav/test-float.wav")).unwrap();
+    // let writer = io::file_writer(&path::PosixPath("output.wav"), &[io::Create, io::Truncate]).unwrap();
+
+    let input_file = @match File::open(~"media/wav/test-float.wav", READ_ONLY, 0x1B6) {
+        Some(file) => file,
+        None => fail!("Could not open input!")
+    };
+
+    let output_file = @match File::open(~"output.wav", WRITE_ONLY | CREATE_FILE | TRUNCATE_FILE, 0x1B6) {
+        Some(file) => file,
+        None => fail!("Could not open output!")
+    };
 
     let source = match WAVSource::new() {
         (Ok, Some(source)) => source,
         (err, _) => fail!(fmt!("Error: %?", err))
     };
 
-    match source.open(reader) {
+    match source.open(input_file as @Read, input_file as @Seek) {
         Ok => (),
         err => fail!(fmt!("Error: %?", err))
     }
@@ -60,7 +72,7 @@ fn main() {
     transform_input.add();
     transform_output.add();
 
-    let sink = match WAVSink::new(writer) {
+    let sink = match WAVSink::new(output_file as @Write, output_file as @Seek) {
         (Ok, Some(sink)) => sink,
         (err, _) => fail!(fmt!("Error: %?", err))
     };
@@ -85,7 +97,7 @@ fn main() {
                     match event.event_type {
                         event::EndOfStream => {
                             match sink.finalize() {
-                                Ok => return io::println("Reached end"),
+                                Ok => return,
                                 err => fail!(fmt!("Error finalizing sink: %?", err))
                             }
                         }

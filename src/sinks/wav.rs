@@ -1,4 +1,3 @@
-use std::io;
 use std::uint;
 
 use result::{Ok, Error, Result};
@@ -12,6 +11,9 @@ use parsers::wav;
 use samples::sample::{Sample, SampleQueue};
 use sinks::sink::{Sink, StreamSink, SinkCharacteristics};
 
+use io::seek::Seek;
+use io::write::{Write, WriteCore};
+
 struct WAVSink {
     stream: Option<@mut WAVStreamSink>,
     shutdown: bool
@@ -19,7 +21,7 @@ struct WAVSink {
 
 struct WAVStreamSink {
     sink: @mut WAVSink,
-    stream: @Writer,
+    writer: @Write, seeker: @Seek,
     bytes_written: u64,
 
     stream_type: StreamType,
@@ -31,13 +33,13 @@ struct WAVStreamSink {
 }
 
 impl WAVSink {
-    pub fn new(stream:@Writer) -> (Result<uint>, Option<@mut WAVSink>) {
+    pub fn new(writer:@Write, seeker:@Seek) -> (Result<uint>, Option<@mut WAVSink>) {
         let result = @mut WAVSink {
             stream: None,
             shutdown: false
         };
 
-        let status = WAVStreamSink::new(result, stream);
+        let status = WAVStreamSink::new(result, writer, seeker);
 
         return match status {
             (Ok, Some(stream_sink)) => {
@@ -96,10 +98,10 @@ impl Sink for WAVSink {
 }
 
 impl WAVStreamSink {
-    pub fn new(sink:@mut WAVSink, stream:@Writer) -> (Result<uint>, Option<@mut WAVStreamSink>) {
+    pub fn new(sink:@mut WAVSink, writer:@Write, seeker:@Seek) -> (Result<uint>, Option<@mut WAVStreamSink>) {
         return (Ok, Some(@mut WAVStreamSink {
             sink: sink,
-            stream: stream,
+            writer: writer, seeker: seeker,
             bytes_written: 0,
 
             stream_type: types::BinaryStream,
@@ -140,7 +142,7 @@ impl WAVStreamSink {
     fn write_sample_to_stream(&mut self, sample:Sample) -> Result<uint> {
         for uint::range(0, sample.length()) |i| {
             let result = do sample[i].map() |buffer| {
-                self.stream.write(buffer); self.bytes_written += (buffer.len() as u64); Ok
+                self.writer.write(buffer); self.bytes_written += (buffer.len() as u64); Ok
             };
 
             if result != Ok {
@@ -174,14 +176,14 @@ impl WAVStreamSink {
                     return Error(0); // TODO: Support Multichannel
                 }
 
-                self.stream.seek(0, io::SeekSet);
+                self.seeker.seek_from_beginning(0);
 
-                self.stream.write_be_u32(fcc!("RIFF"));
-                self.stream.write_le_u32(file_size as u32); // TODO: Check for overflow
-                self.stream.write_be_u32(fcc!("WAVE"));
+                self.writer.write_fourcc(fcc!("RIFF"));
+                self.writer.write_u32_le(file_size as u32); // TODO: Check for overflow
+                self.writer.write_fourcc(fcc!("WAVE"));
 
-                self.stream.write_be_u32(fcc!("fmt "));
-                self.stream.write_le_u32(18);
+                self.writer.write_fourcc(fcc!("fmt "));
+                self.writer.write_u32_le(18);
 
                 let (tag, bits, bytes) = match pcm_format.sample_type {
                     types::Unsigned(bits) | types::Signed(bits) => {
@@ -204,18 +206,16 @@ impl WAVStreamSink {
                     }
                 }
 
-                self.stream.write_le_u16(tag);
-                self.stream.write_le_u16(format.channels as u16);
-                self.stream.write_le_u32(format.sample_rate as u32);
-                self.stream.write_le_u32((bytes * format.channels * format.sample_rate) as u32);
-                self.stream.write_le_u16((bytes * format.channels) as u16);
-                self.stream.write_le_u16(bits as u16);
-                self.stream.write_le_u16(0);
+                self.writer.write_u16_le(tag);
+                self.writer.write_u16_le(format.channels as u16);
+                self.writer.write_u32_le(format.sample_rate as u32);
+                self.writer.write_u32_le((bytes * format.channels * format.sample_rate) as u32);
+                self.writer.write_u16_le((bytes * format.channels) as u16);
+                self.writer.write_u16_le(bits as u16);
+                self.writer.write_u16_le(0);
 
-                self.stream.write_be_u32(fcc!("data"));
-                self.stream.write_le_u32(self.bytes_written as u32); // TODO: Check for overflow
-
-                self.stream.flush();
+                self.writer.write_fourcc(fcc!("data"));
+                self.writer.write_u32_le(self.bytes_written as u32); // TODO: Check for overflow
 
                 Ok
             },
@@ -260,7 +260,7 @@ impl StreamSink for WAVStreamSink {
 
         match stream_type {
             types::AudioStream(types::PCMStream(_), _) => {
-                self.stream.seek(18, io::SeekSet);
+                self.seeker.seek_from_beginning(18);
             },
             _ => return Error(0) // TODO: Support non-PCM formats
         }

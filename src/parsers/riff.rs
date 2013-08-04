@@ -1,8 +1,10 @@
-use std::io;
 use std::sys;
 
 use fourcc::FourCC;
 use result::{Ok, Error, Result};
+
+use io::read::{Read, ReadCore};
+use io::seek::Seek;
 
 pub struct RIFFChunk {
     fourcc: FourCC,
@@ -28,7 +30,9 @@ impl RIFFList {
 }
 
 pub struct RIFFParser {
-    stream:@Reader,
+    reader:@Read,
+    seeker:@Seek,
+
     riff_id:FourCC,
     riff_type:FourCC,
 
@@ -42,10 +46,11 @@ pub struct RIFFParser {
 }
 
 impl RIFFParser {
-    pub fn new(stream:@Reader, id:FourCC, container_offset:u64) -> (Result<uint>, Option<RIFFParser>) {
+    pub fn new(reader:@Read, seeker:@Seek, id:FourCC, container_offset:u64) -> (Result<uint>, Option<RIFFParser>) {
         let chunk = RIFFChunk { fourcc:0, size:0 };
         let mut parser = RIFFParser {
-            stream:stream, riff_id:id, riff_type:0,
+            reader:reader, seeker:seeker,
+            riff_id:id, riff_type:0,
             container_offset:container_offset, container_size:0,
             current_chunk:chunk, current_chunk_offset:0,
             bytes_remaining:0
@@ -74,12 +79,12 @@ impl RIFFParser {
 
         // TODO: Should probably check for size overflow here
 
-        self.stream.seek(self.container_offset as int, io::SeekSet);
+        self.seeker.seek_from_beginning(self.container_offset);
 
         let header = RIFFList { // TODO: Should change to a non-blocking stream implementation? WTF happens on failure?
-            fourcc:self.stream.read_be_u32(), // TODO: Read FourCC?
-            size:self.stream.read_le_u32(),
-            list_type:self.stream.read_be_u32() // TODO: Read FourCC?
+            fourcc: self.reader.read_fourcc(),
+            size: self.reader.read_u32_le(),
+            list_type: self.reader.read_fourcc()
         };
 
         if header.fourcc != self.riff_id {
@@ -97,8 +102,8 @@ impl RIFFParser {
         // TODO: Should probably check for size overflow here
 
         self.current_chunk = RIFFChunk { // TODO: Should change to a non-blocking stream implementation? WTF happens on failure?
-            fourcc:self.stream.read_be_u32(), // TODO: Read FourCC?
-            size:self.stream.read_le_u32()
+            fourcc: self.reader.read_fourcc(),
+            size: self.reader.read_u32_le()
         };
 
         self.bytes_remaining = self.current_chunk.size as u64;
@@ -120,7 +125,7 @@ impl RIFFParser {
 
         // TODO: Check for overflow?
 
-        self.stream.seek(self.current_chunk_offset as int, io::SeekSet);
+        self.seeker.seek_from_beginning(self.current_chunk_offset);
 
         match self.read_chunk_header() {
             Ok => (),
@@ -143,7 +148,7 @@ impl RIFFParser {
             return Error(0)
         }
 
-        self.stream.seek((self.current_chunk_offset + offset + (sys::size_of::<RIFFChunk>() as u64)) as int, io::SeekSet);
+        self.seeker.seek_from_beginning(self.current_chunk_offset + offset + (sys::size_of::<RIFFChunk>() as u64));
         self.bytes_remaining = (self.current_chunk.size as u64) - offset;
 
         return Ok;
@@ -158,10 +163,10 @@ impl RIFFParser {
             return (Error(0), 0);
         }
 
-        let read = self.stream.read(data, length as uint) as u64; // TODO: Fix streams to use u64…
+        self.reader.read(data, length);
 
-        self.bytes_remaining -= read;
+        self.bytes_remaining -= length;
 
-        return (Ok, read);
+        return (Ok, length);
     }
 }

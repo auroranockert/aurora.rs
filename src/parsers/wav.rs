@@ -1,8 +1,13 @@
 use std::uint;
 use std::option;
 
+use io::read::Read;
+use io::seek::Seek;
+
 use result::{Ok, Error, Result};
 use parsers::riff::RIFFParser;
+
+use io::read::ReadCore;
 
 pub static WAVE_FORMAT_PCM:u16          = 0x0001;
 pub static WAVE_FORMAT_IEEE_FLOAT:u16   = 0x0003;
@@ -41,8 +46,8 @@ pub struct WAVParser {
 }
 
 impl WAVParser {
-    pub fn new(stream:@Reader) -> (Result<uint>, Option<WAVParser>) {
-        let status = RIFFParser::new(stream, fcc!("RIFF"), 0);
+    pub fn new(reader:@Read, seeker:@Seek) -> (Result<uint>, Option<WAVParser>) {
+        let status = RIFFParser::new(reader, seeker, fcc!("RIFF"), 0);
 
         let parser = match status {
             (Ok, Some(riff)) => WAVParser {
@@ -89,7 +94,7 @@ impl WAVParser {
             _ => fail!("Already parsed format block!")
         }
 
-        let format_tag = self.riff.stream.read_le_u16();
+        let format_tag = self.riff.reader.read_u16_le();
         
         let min_format_size = match format_tag {
             WAVE_FORMAT_EXTENSIBLE => 40, _ => 16
@@ -110,21 +115,21 @@ impl WAVParser {
 
         let wave_format_ex = WaveFormat {
             format_tag: format_tag,
-            channels: self.riff.stream.read_le_u16(),
-            samples_per_second: self.riff.stream.read_le_u32(),
-            average_bytes_per_second: self.riff.stream.read_le_u32(),
-            block_align: self.riff.stream.read_le_u16(),
-            bits_per_sample: self.riff.stream.read_le_u16(),
-            size: if read_size { self.riff.stream.read_le_u16() } else { 0 }
+            channels: self.riff.reader.read_u16_le(),
+            samples_per_second: self.riff.reader.read_u32_le(),
+            average_bytes_per_second: self.riff.reader.read_u32_le(),
+            block_align: self.riff.reader.read_u16_le(),
+            bits_per_sample: self.riff.reader.read_u16_le(),
+            size: if read_size { self.riff.reader.read_u16_le() } else { 0 }
         };
 
         self.format = match format_tag {
             WAVE_FORMAT_EXTENSIBLE => {
-                let samples = self.riff.stream.read_le_u16();
-                let channel_mask = self.riff.stream.read_le_u32();
+                let samples = self.riff.reader.read_u16_le();
+                let channel_mask = self.riff.reader.read_u32_le();
                 let mut sub_format = [0u8, ..16];
 
-                for uint::range(0, 16) |i| { sub_format[i] = self.riff.stream.read_u8(); }
+                for uint::range(0, 16) |i| { sub_format[i] = self.riff.reader.read_u8_be(); }
 
                 let wave_format_extensible = WaveFormatExtensible {
                     samples: samples,
