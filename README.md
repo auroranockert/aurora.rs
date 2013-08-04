@@ -41,10 +41,16 @@ Goal
 It would be really cool if this could be used in Servo for audio / video / img tags, but I doubt it will, mainly due to licensing reasons. It is also meant to support my thesis, since I am getting tired of working with Python.
 
 
+Building
+--------
+
+You can `make aurora` to build the library, or `make all` to also build the example applications.
+
+
 Demo
 ----
 
-You should be able to run aurora.rs if you have a `test-float.wav` file in the same directory, it transcodes it to a `output.wav` which has signed 16-bit samples.
+You should be able to run `make examples` to build the examples, then run `bin/wav-to-wav-s16` and if you have a `media/wav/test-float.wav` around, it'll create a `output.wav` with 16-bit samples.
 
 
 Authors
@@ -55,12 +61,6 @@ Aurora.rs was written by [@jensnockert](https://github.com/jensnockert), and you
 In addition Aurora.js is currently being developed by [@devongovett](https://github.com/devongovett) and he is really awesome (and also a member of Audiocogs).
 
 If you want to contact me about it, either tweet or poke me on #audiocogs (Freenode IRC) or #rust (Mozilla IRC).
-
-
-Building
---------
-
-You can `rust run aurora.rs` or build it as a library, both should work.
 
 
 License
