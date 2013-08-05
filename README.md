@@ -54,7 +54,7 @@ Demo
 You should be able to run `make examples` to build the examples, then run them.
 
  - `bin/wav-to-wav-s16` converts `media/wav/test-float.wav` into `output.wav` with 16-bit signed samples.
- - `bin/wav-to-au-s16` converts `media/wav/test-float.wav` to `output.au` with 16-bit signed samples.
+ - `bin/wav-to-au-s16` converts `media/wav/test-float.wav` to 16-bit signed samples and writes as a `.au` to standard out.
 
 
 Authors

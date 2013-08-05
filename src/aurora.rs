@@ -30,10 +30,12 @@ pub mod events {
 }
 
 pub mod io {
-    pub mod file;
     pub mod read;
     pub mod seek;
     pub mod write;
+
+    pub mod file;
+    pub mod standardoutput;
 }
 
 pub mod parsers {

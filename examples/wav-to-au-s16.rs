@@ -7,7 +7,8 @@ use aurora::result::Ok;
 
 use aurora::events::event;
 use aurora::events::event::EventGenerator;
-use aurora::io::file::{File, READ_ONLY, WRITE_ONLY, CREATE_FILE, TRUNCATE_FILE};
+use aurora::io::file::{File, READ_ONLY};
+use aurora::io::standardoutput::StandardOutput;
 use aurora::io::read::Read;
 use aurora::io::seek::Seek;
 use aurora::io::write::Write;
@@ -24,10 +25,7 @@ fn main() {
         None => fail!("Could not open input!")
     };
 
-    let output_file = @match File::open(~"output.au", WRITE_ONLY | CREATE_FILE | TRUNCATE_FILE, 0x1B6) {
-        Some(file) => file,
-        None => fail!("Could not open output!")
-    };
+    let output_file = @StandardOutput::new();
 
     let source = match WAVSource::new() {
         (Ok, Some(source)) => source,
@@ -69,7 +67,7 @@ fn main() {
     transform_input.add();
     transform_output.add();
 
-    let sink = match AuSink::new(output_file as @Write, Some(output_file as @Seek)) {
+    let sink = match AuSink::new(output_file as @Write, None) {
         (Ok, Some(sink)) => sink,
         (err, _) => fail!(fmt!("Error: %?", err))
     };
