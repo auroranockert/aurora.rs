@@ -47,6 +47,8 @@ pub mod samples {
 
 pub mod sinks {
     pub mod sink;
+
+    pub mod au;
     pub mod wav;
 }
 

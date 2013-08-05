@@ -1,6 +1,6 @@
 all: aurora examples
 aurora: lib/.aurora-token
-examples: bin/wav-to-wav-s16
+examples: bin/wav-to-wav-s16 bin/wav-to-au-s16
 
 clean:
 	rm -rf lib/ bin/
@@ -14,3 +14,5 @@ lib/.aurora-token: dirs
 bin/wav-to-wav-s16: aurora dirs
 	rustc --out-dir bin/ -L lib/ examples/wav-to-wav-s16.rs
 
+bin/wav-to-au-s16: aurora dirs
+	rustc --out-dir bin/ -L lib/ examples/wav-to-au-s16.rs

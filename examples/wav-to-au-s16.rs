@@ -12,7 +12,7 @@ use aurora::io::read::Read;
 use aurora::io::seek::Seek;
 use aurora::io::write::Write;
 use aurora::sinks::sink::{Sink, StreamSink};
-use aurora::sinks::wav::WAVSink;
+use aurora::sinks::au::AuSink;
 use aurora::sources::wav::WAVSource;
 use aurora::streams::stream::Stream;
 use aurora::transforms::transform::Transform;
@@ -24,7 +24,7 @@ fn main() {
         None => fail!("Could not open input!")
     };
 
-    let output_file = @match File::open(~"output.wav", WRITE_ONLY | CREATE_FILE | TRUNCATE_FILE, 0x1B6) {
+    let output_file = @match File::open(~"output.au", WRITE_ONLY | CREATE_FILE | TRUNCATE_FILE, 0x1B6) {
         Some(file) => file,
         None => fail!("Could not open output!")
     };
@@ -58,7 +58,7 @@ fn main() {
     };
 
     let pcm_format = types::PCMFormat {
-        sample_type: types::Signed(16), endian: types::LittleEndian
+        sample_type: types::Signed(16), endian: types::BigEndian
     };
 
     let output_type = types::AudioStream(types::PCMStream(pcm_format), audio_format);
@@ -69,7 +69,7 @@ fn main() {
     transform_input.add();
     transform_output.add();
 
-    let sink = match WAVSink::new(output_file as @Write, output_file as @Seek) {
+    let sink = match AuSink::new(output_file as @Write, Some(output_file as @Seek)) {
         (Ok, Some(sink)) => sink,
         (err, _) => fail!(fmt!("Error: %?", err))
     };

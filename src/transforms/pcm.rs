@@ -2,6 +2,7 @@ use std::cast;
 use std::uint;
 
 use types;
+use byteswap::ByteSwap;
 
 use result::{Ok, Error, Result};
 
@@ -75,7 +76,7 @@ impl Transform for PCMTransform {
             transform::StartOfStream(_) => (), // No-op, since we don't keep state
             transform::EndOfStream(_) => (), // No-op, since we don't keep state
         }
-    
+
         return Ok;
     }
 
@@ -119,11 +120,8 @@ impl Transform for PCMTransform {
                     fail!("Output format (channel / sample rate) is not the same as input format.");
                 }
 
-                if (input_pcm_format.endian != types::LittleEndian) || (output_pcm_format.endian != types::LittleEndian) {
-                    fail!("Only supporting little endian for now (and big endian systems are currently fucked)");
-                }
-
                 let (input_sample_type, output_sample_type) = (input_pcm_format.sample_type, output_pcm_format.sample_type);
+                let (input_sample_endian, output_sample_endian) = (input_pcm_format.endian, output_pcm_format.endian);
 
                 if (input_sample_type == types::ALaw) || (output_sample_type == types::ALaw) {
                     fail!("A-Law samples are not currently supported");
@@ -157,10 +155,10 @@ impl Transform for PCMTransform {
 
                         match sample[i].map(|src| {
                             match input_sample_type {
-                                types::Signed(16) => from_s16(inter_f64, src),
-                                types::Float(32) => from_f32(inter_f64, src),
-                                types::Float(64) => from_f64(inter_f64, src),
-                                _ => fail!("Currently invalid type, only floats allowed!")
+                                types::Signed(16) => from_s16(inter_f64, src, input_sample_endian),
+                                types::Float(32) => from_f32(inter_f64, src, input_sample_endian),
+                                types::Float(64) => from_f64(inter_f64, src, input_sample_endian),
+                                _ => fail!("Currently invalid type, only s16/f32/f64 allowed!")
                             }; Ok
                         }) {
                             Ok => (),
@@ -169,13 +167,13 @@ impl Transform for PCMTransform {
 
                         result_buffer.map(|dst| {
                             match output_sample_type {
-                                types::Signed(16) => to_s16(dst, inter_f64),
-                                types::Float(32) => to_f32(dst, inter_f64),
-                                types::Float(64) => to_f64(dst, inter_f64),
-                                _ => fail!("Currently only float output is allowed")
+                                types::Signed(16) => to_s16(dst, inter_f64, output_sample_endian),
+                                types::Float(32) => to_f32(dst, inter_f64, output_sample_endian),
+                                types::Float(64) => to_f64(dst, inter_f64, output_sample_endian),
+                                _ => fail!("Currently only s16/f32/f64 output is allowed")
                             }; Ok
                         })
-                        
+
                     }) {
                         Ok => (),
                         err => return (err, None)
@@ -195,54 +193,108 @@ impl Transform for PCMTransform {
     }
 }
 
-fn from_s16(dst:&mut [f64], src:&[u8]) {
+fn from_s16(dst:&mut [f64], src:&[u8], endian:types::Endian) {
     use std::i16;
 
     let src = unsafe { cast::transmute::<&[u8], &[i16]>(src) };
 
-    for uint::range(0, src.len()) |i| {
-        dst[i] = -(src[i] as f64) / (i16::min_value as f64); // TODO: Use some tricks here…
+    match endian {
+        types::BigEndian => {
+            for uint::range(0, src.len()) |i| {
+                dst[i] = -(src[i].to_big_endian() as f64) / (i16::min_value as f64); // TODO: Use some tricks here…
+            }
+        }
+        types::LittleEndian => {
+            for uint::range(0, src.len()) |i| {
+                dst[i] = -(src[i].to_little_endian() as f64) / (i16::min_value as f64); // TODO: Use some tricks here…
+            }
+        }
     }
 }
 
-fn from_f32(dst:&mut [f64], src:&[u8]) {
+fn from_f32(dst:&mut [f64], src:&[u8], endian:types::Endian) {
     let src = unsafe { cast::transmute::<&[u8], &[f32]>(src) };
 
-    for uint::range(0, src.len()) |i| {
-        dst[i] = src[i] as f64;
+    match endian {
+        types::BigEndian => {
+            for uint::range(0, src.len()) |i| {
+                dst[i] = src[i].to_big_endian() as f64;
+            }
+        }
+        types::LittleEndian => {
+            for uint::range(0, src.len()) |i| {
+                dst[i] = src[i].to_little_endian() as f64;
+            }
+        }
     }
 }
 
-fn from_f64(dst:&mut [f64], src:&[u8]) {
+fn from_f64(dst:&mut [f64], src:&[u8], endian:types::Endian) {
     let src = unsafe { cast::transmute::<&[u8], &[f64]>(src) };
 
-    for uint::range(0, src.len()) |i| {
-        dst[i] = src[i] as f64;
+    match endian {
+        types::BigEndian => {
+            for uint::range(0, src.len()) |i| {
+                dst[i] = src[i].to_big_endian();
+            }
+        }
+        types::LittleEndian => {
+            for uint::range(0, src.len()) |i| {
+                dst[i] = src[i].to_little_endian();
+            }
+        }
     }
 }
 
-fn to_s16(dst:&mut [u8], src:&[f64]) {
+fn to_s16(dst:&mut [u8], src:&[f64], endian:types::Endian) {
     use std::i16;
 
     let dst = unsafe { cast::transmute::<&mut [u8], &mut [i16]>(dst) };
 
-    for uint::range(0, src.len()) |i| {
-        dst[i] = ((-src[i]) * (i16::min_value as f64)) as i16;
+    match endian {
+        types::BigEndian => {
+            for uint::range(0, src.len()) |i| {
+                dst[i] = (((-src[i]) * (i16::min_value as f64)) as i16).to_big_endian();
+            }
+        }
+        types::LittleEndian => {
+            for uint::range(0, src.len()) |i| {
+                dst[i] = (((-src[i]) * (i16::min_value as f64)) as i16).to_little_endian();
+            }
+        }
     }
 }
 
-fn to_f32(dst:&mut [u8], src:&[f64]) {
+fn to_f32(dst:&mut [u8], src:&[f64], endian:types::Endian) {
     let dst = unsafe { cast::transmute::<&mut [u8], &mut [f32]>(dst) };
 
-    for uint::range(0, src.len()) |i| {
-        dst[i] = src[i] as f32;
+    match endian {
+        types::BigEndian => {
+            for uint::range(0, src.len()) |i| {
+                dst[i] = (src[i] as f32).to_big_endian();
+            }
+        }
+        types::LittleEndian => {
+            for uint::range(0, src.len()) |i| {
+                dst[i] = (src[i] as f32).to_little_endian();
+            }
+        }
     }
 }
 
-fn to_f64(dst:&mut [u8], src:&[f64]) {
+fn to_f64(dst:&mut [u8], src:&[f64], endian:types::Endian) {
     let dst = unsafe { cast::transmute::<&mut [u8], &mut [f64]>(dst) };
 
-    for uint::range(0, src.len()) |i| {
-        dst[i] = src[i];
+    match endian {
+        types::BigEndian => {
+            for uint::range(0, src.len()) |i| {
+                dst[i] = src[i].to_big_endian();
+            }
+        }
+        types::LittleEndian => {
+            for uint::range(0, src.len()) |i| {
+                dst[i] = src[i].to_little_endian();
+            }
+        }
     }
 }

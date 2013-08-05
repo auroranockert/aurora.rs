@@ -1,3 +1,4 @@
+use std::cast;
 use std::unstable::intrinsics;
 
 pub trait ByteSwap {
@@ -85,3 +86,24 @@ impl ByteSwap for i64 {
         return intrinsics::to_le64(*self);
     }
 }
+
+impl ByteSwap for f32 {
+    pub fn to_big_endian(&self) -> f32 {
+        return unsafe { cast::transmute(intrinsics::to_be32(cast::transmute(*self))) };
+    }
+
+    pub fn to_little_endian(&self) -> f32 {
+        return unsafe { cast::transmute(intrinsics::to_le32(cast::transmute(*self))) };
+    }
+}
+
+impl ByteSwap for f64 {
+    pub fn to_big_endian(&self) -> f64 {
+        return unsafe { cast::transmute(intrinsics::to_be64(cast::transmute(*self))) };
+    }
+
+    pub fn to_little_endian(&self) -> f64 {
+        return unsafe { cast::transmute(intrinsics::to_le64(cast::transmute(*self))) };
+    }
+}
+

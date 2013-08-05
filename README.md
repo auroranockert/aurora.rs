@@ -11,7 +11,8 @@ It is also intended to support video, which isn't really in the realm of JS perf
 What is working
 ---------------
 
- - WAV mux, demux (mostly, but it is brittle)
+ - WAV mux, demux. (mostly, but it is brittle)
+ - Au mux.
  - PCM transcoder (always round-trips via double, so while accurate, it might be slow)
 
 
@@ -50,7 +51,10 @@ You can `make aurora` to build the library, or `make all` to also build the exam
 Demo
 ----
 
-You should be able to run `make examples` to build the examples, then run `bin/wav-to-wav-s16` and if you have a `media/wav/test-float.wav` around, it'll create a `output.wav` with 16-bit samples.
+You should be able to run `make examples` to build the examples, then run them.
+
+ - `bin/wav-to-wav-s16` converts `media/wav/test-float.wav` into `output.wav` with 16-bit signed samples.
+ - `bin/wav-to-au-s16` converts `media/wav/test-float.wav` to `output.au` with 16-bit signed samples.
 
 
 Authors
