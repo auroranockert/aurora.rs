@@ -80,7 +80,7 @@ pub trait Source : EventGenerator {
     pub fn shutdown(&mut self) -> Result<uint>;
 }
 
-pub trait Stream : EventGenerator {
+pub trait StreamSource : EventGenerator {
     pub fn descriptor(&mut self) -> (Result<uint>, Option<@mut StreamDescriptor>);
     
     pub fn request_sample(&mut self) -> Result<uint>;

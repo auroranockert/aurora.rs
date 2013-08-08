@@ -16,7 +16,7 @@ use parsers::wav::WAVParser;
 use samples::sample::{Sample, SampleQueue};
 
 use sources::source;
-use sources::source::{Source, SourceCharacteristics, PresentationDescriptor, State, Started, Paused, Stopped, Stream, StreamDescriptor};
+use sources::source::{Source, SourceCharacteristics, PresentationDescriptor, State, Started, Paused, Stopped, StreamDescriptor};
 
 use io::read::Read;
 use io::seek::Seek;
@@ -24,7 +24,7 @@ use io::seek::Seek;
 struct WAVSource {
     presentation_descriptor: @mut PresentationDescriptor,
     event_queue: EventQueue,
-    stream: Option<uint>, //WAVStreamSink>,
+    stream: Option<uint>, //WAVStreamSource>,
     parser: Option<@mut WAVParser>,
     shutdown: bool,
     state: State
@@ -69,8 +69,8 @@ impl WAVSource {
         };
     }
 
-    pub fn create_stream(@mut self) -> (Result<uint>, Option<@mut WAVStreamSink>) {
-        let result = WAVStreamSink::new(self);
+    pub fn create_stream(@mut self) -> (Result<uint>, Option<@mut WAVStreamSource>) {
+        let result = WAVStreamSource::new(self);
 
         match result {
             (Ok, Some(stream)) => self.presentation_descriptor.add_stream(stream.descriptor),
@@ -278,7 +278,7 @@ impl Source for WAVSource {
     }
 }
 
-pub struct WAVStreamSink {
+pub struct WAVStreamSource {
     shutdown:bool,
     current_position:u64,
     discontinuity: bool,
@@ -291,8 +291,8 @@ pub struct WAVStreamSink {
     sample_queue:SampleQueue
 }
 
-impl WAVStreamSink {
-    pub fn new(source:@mut WAVSource) -> (Result<uint>, Option<@mut WAVStreamSink>) {
+impl WAVStreamSource {
+    pub fn new(source:@mut WAVSource) -> (Result<uint>, Option<@mut WAVStreamSource>) {
         let parser = match source.parser {
             Some(parser) => parser,
             None => return (Error(0), None)
@@ -347,7 +347,7 @@ impl WAVStreamSink {
 
         let sd = StreamDescriptor::new(true, 0, types::AudioStream(types::PCMStream(pcm_format), audio_format));
 
-        return (Ok, Some(@mut WAVStreamSink {
+        return (Ok, Some(@mut WAVStreamSource {
             shutdown: false,
             current_position: 0,
             discontinuity: false,
@@ -436,7 +436,7 @@ impl WAVStreamSink {
     }
 }
 
-impl EventGenerator for WAVStreamSink {
+impl EventGenerator for WAVStreamSource {
     pub fn dequeue_event(&mut self) -> (Result<uint>, Option<Event>) {
         self.event_queue.dequeue_event()
     }
@@ -447,7 +447,7 @@ impl EventGenerator for WAVStreamSink {
     
 }
 
-impl Stream for WAVStreamSink {
+impl source::StreamSource for WAVStreamSource {
     pub fn descriptor(&mut self) -> (Result<uint>, Option<@mut StreamDescriptor>) {
         return match self.check_shutdown() {
             Ok => (Ok, Some(self.descriptor)),

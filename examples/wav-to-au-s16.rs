@@ -14,7 +14,7 @@ use aurora::io::seek::Seek;
 use aurora::io::write::Write;
 use aurora::sinks::sink::{Sink, StreamSink};
 use aurora::sinks::au::AuSink;
-use aurora::sources::source::Stream;
+use aurora::sources::source::StreamSource;
 use aurora::sources::wav::WAVSource;
 use aurora::transforms::transform::Transform;
 use aurora::transforms::pcm::PCMTransform;
