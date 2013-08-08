@@ -1,29 +1,29 @@
-#[deriving(Eq)]
+#[deriving(Eq, Clone)]
 pub enum Endian {
     BigEndian, LittleEndian
 }
 
-#[deriving(Eq)]
+#[deriving(Eq, Clone)]
 pub enum AudioSubtype {
-    PCMStream(PCMFormat)
+    PCMStream(PCMFormat), FLACStream
 }
 
-#[deriving(Eq)]
+#[deriving(Eq, Clone)]
 pub struct AudioFormat {
     sample_rate: uint, channels: uint
 }
 
-#[deriving(Eq)]
+#[deriving(Eq, Clone)]
 pub enum StreamType {
     AudioStream(AudioSubtype, AudioFormat), BinaryStream
 }
 
-#[deriving(Eq)]
+#[deriving(Eq, Clone)]
 pub enum SampleType {
     Float(uint), Signed(uint), Unsigned(uint), ALaw, MuLaw
 }
 
-#[deriving(Eq)]
+#[deriving(Eq, Clone)]
 pub struct PCMFormat {
     sample_type: SampleType,
     endian: Endian

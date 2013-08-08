@@ -126,3 +126,9 @@ impl<T:Write> WriteCore for T {
         self.write_u32_be(value as u32);
     }
 }
+
+impl Write for @Write {
+    pub fn write(&mut self, bytes:&[u8]) -> Result<WriteFailure> {
+        return self.write(bytes);
+    }
+}

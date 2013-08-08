@@ -1,9 +1,9 @@
 use std::ops;
 
+use types;
 use result::Result;
 
 use events::event::EventGenerator;
-use streams::stream::StreamDescriptor;
 
 #[deriving(Eq)]
 pub enum State {
@@ -52,6 +52,22 @@ impl ops::Index<uint, @mut StreamDescriptor> for PresentationDescriptor {
     }
 }
 
+pub struct StreamDescriptor {
+    selected: bool,
+    identifier: uint,
+    stream_type: types::StreamType
+}
+
+impl StreamDescriptor {
+    pub fn new(selected:bool, identifier:uint, stream_type:types::StreamType) -> @mut StreamDescriptor {
+        return @mut StreamDescriptor {
+            selected: selected,
+            identifier: identifier,
+            stream_type: stream_type
+        }
+    }
+}
+
 pub trait Source : EventGenerator {
     pub fn presentation_descriptor(&self) -> (Result<uint>, Option<@mut PresentationDescriptor>);
 
@@ -62,4 +78,10 @@ pub trait Source : EventGenerator {
     pub fn stop(&mut self) -> Result<uint>;
 
     pub fn shutdown(&mut self) -> Result<uint>;
+}
+
+pub trait Stream : EventGenerator {
+    pub fn descriptor(&mut self) -> (Result<uint>, Option<@mut StreamDescriptor>);
+    
+    pub fn request_sample(&mut self) -> Result<uint>;
 }

@@ -3,14 +3,22 @@ use std::ops;
 use types::StreamType;
 use buffers::buffer::Buffer;
 
+#[deriving(Clone)]
 pub struct Sample {
     stream_type: StreamType,
-    buffers:~[@Buffer]
+    buffers: ~[@Buffer],
+    end_of_stream: bool
+}
+
+impl Clone for @Buffer {
+    pub fn clone(&self) -> @Buffer {
+        return *self;
+    }
 }
 
 impl Sample {
     pub fn new(stream_type:StreamType) -> Sample {
-        return Sample { stream_type: stream_type, buffers: ~[] };
+        return Sample { stream_type: stream_type, buffers: ~[], end_of_stream: false };
     }
 
     pub fn add_buffer(&mut self, buffer:@Buffer) {
@@ -32,6 +40,7 @@ impl ops::Index<uint, @Buffer> for Sample {
     }
 }
 
+#[deriving(Clone)]
 pub struct SampleQueue {
     samples:~[Sample]
 }

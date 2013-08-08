@@ -14,13 +14,13 @@ use aurora::io::seek::Seek;
 use aurora::io::write::Write;
 use aurora::sinks::sink::{Sink, StreamSink};
 use aurora::sinks::au::AuSink;
+use aurora::sources::source::Stream;
 use aurora::sources::wav::WAVSource;
-use aurora::streams::stream::Stream;
 use aurora::transforms::transform::Transform;
 use aurora::transforms::pcm::PCMTransform;
 
 fn main() {
-    let input_file = @match File::open(~"media/wav/test-float.wav", READ_ONLY, 0x1B6) {
+    let input_file = @match File::open(~"media/wav/bad-apple.wav", READ_ONLY, 0x1B6) {
         Some(file) => file,
         None => fail!("Could not open input!")
     };

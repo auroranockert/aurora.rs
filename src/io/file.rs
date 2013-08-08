@@ -17,7 +17,6 @@ static READ_WRITE:uint      = 0x0002;
 static CREATE_FILE:uint     = 0x0200;
 static TRUNCATE_FILE:uint   = 0x0400;
 
-
 impl File {
     pub fn open(path:~str, flags:uint, mode:uint) -> Option<File> {
         let fd = unsafe {
@@ -43,17 +42,28 @@ impl Drop for File {
 }
 
 impl read::Read for File {
+    pub fn skip_forward(&mut self, length:u64) -> Result<read::ReadFailure> {
+        return match unsafe { libc::lseek(self.fd, length as libc::off_t, 1) } {
+            -1 => Error(read::UnknownError),
+            _ => Ok
+        };
+    }
+
     pub fn read(&mut self, bytes:&mut [u8], length:u64) -> Result<read::ReadFailure> {
         let n = unsafe {
-            do bytes.as_mut_buf |buffer, length| {
-                libc::read(self.fd, buffer as *mut libc::c_void, length as libc::size_t)
+            do bytes.as_mut_buf |buffer, len| {
+                if (len as u64) < length {
+                    fail!(fmt!("Buffer is not big enough for read (%? read into %? byte buffer)", length, len));
+                } else {
+                    libc::read(self.fd, buffer as *mut libc::c_void, length as libc::size_t)
+                }
             }
         };
 
         return if n < 0 {
             Error(read::UnknownError)
         } else if n < (length as libc::off_t) {
-            Error(read::EndOfStream)
+            Error(read::EndOfStream(n as u64))
         } else if n > (length as libc::off_t) {
             fail!("Read more than expected, this is probably a serious error in aurora/libc…")
         } else {
@@ -100,31 +110,5 @@ impl write::Write for File {
         } else {
             Ok
         }
-    }
-}
-
-impl read::Read for @read::Read {
-    pub fn read(&mut self, bytes:&mut [u8], length:u64) -> Result<read::ReadFailure> {
-        return self.read(bytes, length);
-    }
-}
-
-impl seek::Seek for @seek::Seek {
-    pub fn seek_from_beginning(&mut self, position:u64) -> Result<seek::SeekFailure> {
-        return self.seek_from_beginning(position);
-    }
-
-    pub fn seek_from_end(&mut self, position:u64) -> Result<seek::SeekFailure> {
-        return self.seek_from_end(position);
-    }
-
-    pub fn seek(&mut self, position:i64) -> Result<seek::SeekFailure> {
-        return self.seek(position);
-    }
-}
-
-impl write::Write for @write::Write {
-    pub fn write(&mut self, bytes:&[u8]) -> Result<write::WriteFailure> {
-        return self.write(bytes);
     }
 }
